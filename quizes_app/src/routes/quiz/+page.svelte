@@ -47,12 +47,10 @@
   };
 
   function selectAnswer(questionId: string, optionId: string) {
-    console.log('Selected answer:', questionId, optionId);
     selectedAnswers = {
       ...selectedAnswers,
       [questionId]: optionId,
     };
-    console.log('Selected answers:', selectedAnswers);
   }
 
   function submitAnswers() {

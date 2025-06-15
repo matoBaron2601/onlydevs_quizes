@@ -9,7 +9,6 @@ export const createQuizV1 = async (
   createQuizData: CreateQuiz
 ): Promise<Quiz> => {
   const documentsByTags = await getDocumentsV1(createQuizData.tags);
-  console.log(JSON.stringify(documentsByTags.hits));
   const openAIresponse = await generateCompletionV1(`Tags: ${
     createQuizData.tags
   }
@@ -81,8 +80,6 @@ export const createQuizV1 = async (
       questions: enrichedQuestions,
     };
   });
-
-  console.log('Quiz inserted successfully!');
 
   return enrichedQuiz!;
 };
