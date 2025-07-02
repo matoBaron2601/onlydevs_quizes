@@ -6,11 +6,13 @@
   import { CollectionName } from '../../typesense/types';
   import { handleDeleteCollectionV1 } from './handlers/handleDeleteCollections';
   import { handlePopulateCollectionV1 } from './handlers/handlePopulateCollections';
-  
+  import Modal from '../../components/Modal.svelte';
+
   let collections: CollectionSchema[] | null = null;
+  let isModalOpen = false;
 
   const collectionExists = (name: string) => {
-    return collections?.some(collection => collection.name === name);
+    return collections?.some((collection) => collection.name === name);
   };
 
   const BUTTONS = [
@@ -18,7 +20,7 @@
       label: `Create and populate ${CollectionName.collectionV1}`,
       action: async () => {
         await handleCreateCollectionV1();
-        await handlePopulateCollectionV1();
+        // await handlePopulateCollectionV1();
         collections = await handleFetchCollections();
       },
       condition: () => !collectionExists(CollectionName.collectionV1),
@@ -48,10 +50,26 @@
     {#if collections && collections.length > 0}
       <ul class="mt-8 space-y-4">
         {#each collections as collection}
-          <li
-            class="text-[var(--color2)] bg-[var(--color1)] p-4 rounded-lg shadow"
-          >
-            {collection.name}
+          <li>
+            <button
+              type="button"
+              class="w-full text-left text-[var(--color2)] bg-[var(--color1)] p-4 rounded-lg shadow cursor-pointer"
+              on:click={() => {
+                isModalOpen = true;
+              }}
+            >
+              {collection.name}
+            </button>
+            <div class="ml-5 mt-2 text-gray-300">
+              {JSON.stringify(
+                collection.fields.map((field) => ({
+                  name: field.name,
+                  type: field.type,
+                })),
+                null,
+                2
+              )}
+            </div>
           </li>
         {/each}
       </ul>
@@ -63,7 +81,9 @@
   <div
     class="bg-[var(--color4)] rounded-3xl shadow-xl p-10 max-w-md w-full text-center"
   >
-    <h1 class="text-4xl font-bold text-[var(--color2)] mb-8">Manage Collections</h1>
+    <h1 class="text-4xl font-bold text-[var(--color2)] mb-8">
+      Manage Collections
+    </h1>
 
     {#each BUTTONS as button}
       {#if button.condition()}
@@ -82,4 +102,9 @@
       {/if}
     {/each}
   </div>
+  <Modal
+    onClose={() => (isModalOpen = false)}
+    isOpen={isModalOpen}
+    content="This is the content of the modal."
+  />
 </div>
