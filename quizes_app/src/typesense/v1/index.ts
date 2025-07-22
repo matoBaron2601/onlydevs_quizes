@@ -17,6 +17,6 @@ export const deleteCollectionV1 = async () => {
 export const populateCollectionV1 = async () => {
   return await populateCollection(
     CollectionName.collectionV1,
-    '/home/martin/Desktop/onlydevs_quizes/quizes_app/src/typesense/v1/documents'
+    '/home/martin/Desktop/onlydevs_quizes/quizes_app/src/typesense/v1/document'
   );
 };
