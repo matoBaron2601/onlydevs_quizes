@@ -13,8 +13,13 @@ const chunkFile = async (file: File): Promise<void> => {
         }
 
         const results = await response.json();
-        console.log("Response from server:", results);
+        const resultsString = JSON.stringify(results, null, 2);
+        const limitedResults = resultsString.slice(0, 10000); // Get first 50 characters
+
+        console.log("Response from server:", limitedResults);
     } catch (error) {
         console.error("Error uploading file:", error);
     }
 }
+
+export default chunkFile;

@@ -26,8 +26,8 @@ def rcc():
     recursive_character_chunks = recursive_character_chunker.split_text(document)
 
     analysis_results = analyze_chunks(recursive_character_chunks, use_tokens=False)
-    # print(analysis_results)
-    print(recursive_character_chunks)
+    print(analysis_results)
+    # print(recursive_character_chunks)
     return jsonify(recursive_character_chunks)
 
 if __name__ == '__main__':
