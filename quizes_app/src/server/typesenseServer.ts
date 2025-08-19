@@ -1,17 +1,13 @@
 import type { SearchResponse } from 'typesense/lib/Typesense/Documents';
 import typesenseClient from '../typesense/client';
 import { CollectionName } from '../typesense/types';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { getAllFiles, loadJsonFile } from './utils';
 
 export const getDocumentsV1 = async (
   tags: string[]
 ): Promise<SearchResponse<object>> => {
   const searchParameters = {
-    q: '*',
-    query_by: 'tags',
-    filter_by: `tags:={${tags.join(',')}}`,
+    q: tags.join(' '),
+    query_by: 'content',
     sort_by: '_text_match:desc',
   };
 
@@ -23,22 +19,14 @@ export const getDocumentsV1 = async (
 
 export const populateCollection = async (
   collectionName: CollectionName,
-  path: string
+  chunks: string[]
 ) => {
-  const files = await getAllFiles(path);
-  const jsonData = await Promise.all(
-    files.map(async (file) => {
-      if (file.endsWith('.json')) {
-        const data = await loadJsonFile(file);
-        return data;
-      }
-      return null;
-    })
-  );
-  const loadedJsonData = jsonData.filter((data) => data !== null);
 
-  for (const data of loadedJsonData) {
-    return await typesenseClient.collections(collectionName).documents().create(data);
+  for (const chunk of chunks) {
+    const a = await typesenseClient.collections(collectionName).documents().create({
+      "content": chunk,
+    });
+    console.log(a)
   }
 };
 

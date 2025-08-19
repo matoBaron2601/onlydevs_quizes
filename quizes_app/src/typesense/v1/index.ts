@@ -14,9 +14,6 @@ export const deleteCollectionV1 = async () => {
   return await deleteCollection(CollectionName.collectionV1);
 };
 
-export const populateCollectionV1 = async () => {
-  return await populateCollection(
-    CollectionName.collectionV1,
-    '/home/martin/Desktop/onlydevs_quizes/quizes_app/src/typesense/v1/document'
-  );
+export const populateCollectionV1 = async (chunks: string[]) => {
+  return await populateCollection(CollectionName.collectionV1, chunks);
 };

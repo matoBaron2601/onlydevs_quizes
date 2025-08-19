@@ -11,6 +11,6 @@ export const typesenseApi = new Elysia()
   .delete('typesense/v1/deleteCollection', async () => {
     return await deleteCollectionV1();
   })
-  .post('typesense/v1/populateCollection', async () => {
-    return await populateCollectionV1();
-  })
+  // .post('typesense/v1/populateCollection', async () => {
+  //   return await populateCollectionV1();
+  // })

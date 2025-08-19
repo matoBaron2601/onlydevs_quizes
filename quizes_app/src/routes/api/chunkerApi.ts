@@ -1,16 +1,17 @@
 import Elysia from 'elysia';
-import { createQuizSchema } from '../../schemas/quizSchemas';
-import { createQuizV1 } from '../../server/quizServer';
 import chunkFile from '../../server/chunkerServer';
+import { populateCollectionV1 } from '../../typesense/v1';
+import { getDocumentsV1 } from '../../server/typesenseServer';
 
 const chunkerApi = new Elysia().post('chunker', async (context) => {
-  console.log('GOT HERE');
-  const body = context.body as { file?: File }; // Type assertion for body
-  const file = body.file; // Access the file from the body
+  const body = context.body as { file?: File };
+  const file = body.file;
   if (!file) {
     return;
   }
-  await chunkFile(file);
+  const chunksFromFile = await chunkFile(file);
+  const a = await populateCollectionV1(chunksFromFile);
+  console.log('Chunks populated:', a);
 });
 
 export default chunkerApi;
