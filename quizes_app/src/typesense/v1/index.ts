@@ -17,3 +17,7 @@ export const deleteCollectionV1 = async () => {
 export const populateCollectionV1 = async (chunks: string[]) => {
   return await populateCollection(CollectionName.collectionV1, chunks);
 };
+
+export const getCollectionDocumentsV1 = async () => {
+  return null;
+}

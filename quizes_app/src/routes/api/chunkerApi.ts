@@ -1,7 +1,6 @@
 import Elysia from 'elysia';
 import chunkFile from '../../server/chunkerServer';
 import { populateCollectionV1 } from '../../typesense/v1';
-import { getDocumentsV1 } from '../../server/typesenseServer';
 
 const chunkerApi = new Elysia().post('chunker', async (context) => {
   const body = context.body as { file?: File };

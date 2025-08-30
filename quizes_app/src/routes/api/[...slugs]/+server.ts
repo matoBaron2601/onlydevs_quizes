@@ -3,8 +3,15 @@ import { typesenseApi } from '../typesenseApi';
 import { quizApi } from '../quizApi';
 import authApi from '../authApi';
 import chunkerApi from '../chunkerApi';
+import { cors } from '@elysiajs/cors';
 
 const app = new Elysia({ prefix: '/api' })
+  .use(
+    cors({
+      origin: 'http://localhost:5173', // Update this to match your front-end origin
+      credentials: true, // Allow credentials to be included (cookies, HTTP authentication)
+    })
+  )
   .use(typesenseApi)
   .use(quizApi)
   .use(authApi)

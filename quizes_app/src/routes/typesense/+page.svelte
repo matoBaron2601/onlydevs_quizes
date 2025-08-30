@@ -5,14 +5,81 @@
   import { handleCreateCollectionV1 } from './handlers/handleCreateCollections';
   import { CollectionName } from '../../typesense/types';
   import { handleDeleteCollectionV1 } from './handlers/handleDeleteCollections';
-  import { handlePopulateCollectionV1 } from './handlers/handlePopulateCollections';
   import Modal from '../../components/Modal.svelte';
-  import chunkFile from '../../server/chunkerServer';
-  import { fetchData } from '../api/utils';
+  import type { SearchResponse } from 'typesense/lib/Typesense/Documents';
+  import { createMutation } from '@tanstack/svelte-query';
+  import fetchAllCollectionDocuments from './handlers/fetchAllCollectionDocuments';
 
   let collections: CollectionSchema[] | null = null;
   let isModalOpen = false;
   let selectedFile: File | null = null;
+  let currentCollectionFoundDocuments = 0;
+  let currentCollectionSchema: string = '';
+  let isFileUploadLoading = false;
+  onMount(async () => {
+    const res = await fetch('http://localhost:5173/api/auth/user', {
+      method: 'GET',
+      credentials: 'include', // Important for sending cookies
+    });
+
+    if (!res.ok) {
+      // Handle error response
+      console.log('Error response:', res.status, res.statusText);
+      return;
+    }
+
+    // Read the response body as JSON
+    const data = await res.json();
+    console.log(data); // This will log the actual response data
+  });
+  const mutation = createMutation({
+    mutationFn: fetchAllCollectionDocuments,
+    onSuccess(data: SearchResponse<object>) {
+      currentCollectionFoundDocuments = data.found;
+    },
+    onError(error: Error) {
+      console.error('Error fetching data:', error);
+    },
+  });
+  const uploadFileMutation = createMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await fetch('api/chunker', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      return response.json();
+    },
+    onMutate() {
+      isFileUploadLoading = true; // Set loading state before mutation starts
+    },
+    onSuccess(data) {
+      console.log('File uploaded successfully:', data);
+      // Handle any additional logic after a successful upload
+    },
+    onError(error: Error) {
+      console.error('Error uploading file:', error);
+    },
+    onSettled() {
+      isFileUploadLoading = false; // Reset loading state after mutation finishes
+    },
+  });
+
+  const handleModalOpen = (collection: CollectionSchema) => {
+    $mutation.mutate();
+    currentCollectionSchema = JSON.stringify(
+      collection.fields.map((field) => ({
+        name: field.name,
+        type: field.type,
+      })),
+      null,
+      2
+    );
+  };
 
   const collectionExists = (name: string) => {
     return collections?.some((collection) => collection.name === name);
@@ -42,25 +109,22 @@
     collections = await handleFetchCollections();
   });
 
-  const handleFileUpload = (event: Event) => {
+  const handleFileUpload = async (event: Event) => {
     const fileInput = event.target as HTMLInputElement;
     if (fileInput.files && fileInput.files.length > 0) {
-      selectedFile = fileInput.files[0]; // Store the selected file
-      console.log('File selected:', selectedFile.name);
+      selectedFile = fileInput.files[0];
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      await $uploadFileMutation.mutateAsync(formData);
     }
   };
-  const uploadFile = async () => {
-    if (!selectedFile) {
-      console.log('No file selected for upload.');
-      return;
+  function triggerFileInput() {
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+      fileInput.click();
     }
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    await fetch('api/chunker', {
-      method: 'POST',
-      body: formData, 
-    });
-  };
+  }
 </script>
 
 <div
@@ -69,50 +133,52 @@
   <div
     class="bg-[var(--color4)] rounded-3xl shadow-xl p-10 max-w-md w-full text-center"
   >
-    <h1 class="text-4xl font-bold text-[var(--color2)] mb-8">Collections</h1>
+    <h1 class="text-4xl font-bold text-[var(--color2)] mb-8">
+      Default Collections
+    </h1>
+
     {#if collections && collections.length > 0}
       <ul class="mt-8 space-y-4">
         {#each collections as collection}
-          <li>
+          <li class="flex gap-4">
             <button
               type="button"
-              class="w-full text-left text-[var(--color2)] bg-[var(--color1)] p-4 rounded-lg shadow cursor-pointer"
+              class="w-full text-center text-[var(--color2)] bg-[var(--color1)] p-4 rounded-lg shadow cursor-pointer"
               on:click={() => {
+                handleModalOpen(collection);
                 isModalOpen = true;
               }}
             >
               {collection.name}
             </button>
-            <div class="ml-5 mt-2 text-gray-300">
-              {JSON.stringify(
-                collection.fields.map((field) => ({
-                  name: field.name,
-                  type: field.type,
-                })),
-                null,
-                2
-              )}
-            </div>
+            <button
+              type="button"
+              on:click={triggerFileInput}
+              class="text-[var(--color2)] bg-[var(--color1)] p-2 rounded-lg shadow-lg cursor-pointer transition-colors hover:bg-[var(--color2)] hover:text-[var(--color1)]"
+              aria-label="Upload File"
+            >
+              {#if isFileUploadLoading}
+                <span>Loading...</span>
+              {:else}
+                <span>Upload File</span>
+              {/if}
+            </button>
+            <input
+              id="fileInput"
+              type="file"
+              accept=".txt"
+              class="hidden"
+              on:change={handleFileUpload}
+            />
           </li>
         {/each}
       </ul>
-    {:else}
-      <p class="text-center text-[var(--color2)] mt-4">No collections found.</p>
     {/if}
-  </div>
-
-  <div
-    class="bg-[var(--color4)] rounded-3xl shadow-xl p-10 max-w-md w-full text-center"
-  >
-    <h1 class="text-4xl font-bold text-[var(--color2)] mb-8">
-      Manage Collections
-    </h1>
-
     {#each BUTTONS as button}
       {#if button.condition()}
         <button
           on:click={button.action}
-          class="w-full py-4 rounded-lg shadow-lg font-semibold transition-colors mb-4 cursor-pointer"
+          class="w-full py-4 rounded-lg shadow-lg font-semibold transition-colors mb-4 cursor-pointer mt-4"
           class:bg-[var(--color3)]={button.label.startsWith('Create')}
           class:bg-[var(--color6)]={button.label.startsWith('Delete')}
           class:text-[var(--color1)]={true}
@@ -125,27 +191,12 @@
       {/if}
     {/each}
   </div>
-  <div
-    class="bg-[var(--color4)] rounded-3xl shadow-xl p-10 max-w-md w-full text-center"
-  >
-    <h1 class="text-4xl font-bold text-[var(--color2)] mb-8">
-      Import materials
-    </h1>
-
-    <button class="cursor-pointer" on:click={uploadFile}>
-      <span class="text-[var(--color2)]">Import</span>
-    </button>
-    <input
-      id="fileInput"
-      type="file"
-      accept=".txt"
-      style=""
-      on:change={handleFileUpload}
-    />
-  </div>
-  <Modal
-    onClose={() => (isModalOpen = false)}
-    isOpen={isModalOpen}
-    content="This is the content of the modal."
-  />
+  <Modal onClose={() => (isModalOpen = false)} isOpen={isModalOpen}>
+    <p>
+      Documents found: {currentCollectionFoundDocuments}
+    </p>
+    <p>
+      Schema: {currentCollectionSchema}
+    </p>
+  </Modal>
 </div>

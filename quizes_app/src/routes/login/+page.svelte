@@ -1,5 +1,5 @@
 <script lang="ts">
-  const login = () => {
+  const login = async () => {
     window.open('http://localhost:5173/api/login', '_self');
   };
 </script>

@@ -17,16 +17,31 @@ export const getDocumentsV1 = async (
     .search(searchParameters);
 };
 
+export const getAllDocuments = async (
+  colletionName: CollectionName
+): Promise<SearchResponse<object>> => {
+  const searchParameters = {
+    q: '*',
+  };
+
+  return await typesenseClient
+    .collections(colletionName)
+    .documents()
+    .search(searchParameters);
+};
+
 export const populateCollection = async (
   collectionName: CollectionName,
   chunks: string[]
 ) => {
-
   for (const chunk of chunks) {
-    const a = await typesenseClient.collections(collectionName).documents().create({
-      "content": chunk,
-    });
-    console.log(a)
+    const a = await typesenseClient
+      .collections(collectionName)
+      .documents()
+      .create({
+        content: chunk,
+      });
+    console.log(a);
   }
 };
 

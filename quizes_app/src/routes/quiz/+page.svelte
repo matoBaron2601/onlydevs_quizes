@@ -9,32 +9,11 @@
   let selectedAnswers: Record<string, string> = {};
   let score: number | null = null;
 
-  // const handleCreateQuiz = async ()=> {
-  //     loading = true;
-  //     errorMessage = '';
-  //     createdQuiz = { questions: [] };
-  //     selectedAnswers = {};
-  //     score = null;
-  //     try {
-  //         const response = await handleCrea({tags: parseTags(tags)});
-  //         if(response){
-  //             createdQuiz = response;
-  //         } else {
-  //             createdQuiz = { questions: [] };
-  //             errorMessage = 'Quiz has not been created';
-  //         }
-  //     } catch (error) {
-  //         errorMessage = `Error fetching data: ${error instanceof Error ? error.message : 'Unknown error'}`;
-  //     } finally {
-  //         loading = false;
-  //     }
-  // };
-
   const onSubmit = async () => {
     loading = true;
     errorMessage = '';
     createdQuiz = { questions: [] };
-    selectedAnswers = {};
+    selectedAnswers = {};    
     score = null;
     const response = await handleCreateQuiz(tags);
     if (response) {
