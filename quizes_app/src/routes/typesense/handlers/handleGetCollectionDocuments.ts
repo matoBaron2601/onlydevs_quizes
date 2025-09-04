@@ -1,17 +1,13 @@
-import type { CollectionSchema } from 'typesense/lib/Typesense/Collection';
-import { fetchData } from '../../api/utils';
 import type { SearchResponse } from 'typesense/lib/Typesense/Documents';
 
 const handleGetCollectionDocuments = async (): Promise<
   SearchResponse<object>
 > => {
-  const result = await fetchData<SearchResponse<object>>(
-    'api/typesense/v1/getCollectionDocuments'
-  );
-  if (result === null) {
+  const result = await fetch('api/typesense/v1/getCollectionDocuments');
+  if (!result.ok) {
     throw new Error('Failed to fetch collection documents');
   }
-  return result;
+  return result.json();
 };
 
 export default handleGetCollectionDocuments;

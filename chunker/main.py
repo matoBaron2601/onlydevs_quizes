@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify
+import os
+from flask import Flask, json, request, jsonify
 from chunking_evaluation.chunking import RecursiveTokenChunker
 from analyze_chunks import analyze_chunks
 
@@ -26,6 +27,15 @@ def rcc():
     recursive_character_chunks = recursive_character_chunker.split_text(document)
 
     analysis_results = analyze_chunks(recursive_character_chunks, use_tokens=False)
+
+
+    with open('./test.json', "w", encoding="utf-8") as f:
+        json.dump({
+            "content": recursive_character_chunks,
+        }, f, ensure_ascii=False, indent=2)
+
+
+
     print(analysis_results)
     # print(recursive_character_chunks)
     return jsonify(recursive_character_chunks)

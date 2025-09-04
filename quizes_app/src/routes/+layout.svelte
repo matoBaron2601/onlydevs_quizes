@@ -2,7 +2,8 @@
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
   import '../app.css';
   import Header from '../components/Header.svelte';
-
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
   const queryClient = new QueryClient();
 
   const { children } = $props();

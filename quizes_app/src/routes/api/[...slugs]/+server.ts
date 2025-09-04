@@ -8,14 +8,32 @@ import { cors } from '@elysiajs/cors';
 const app = new Elysia({ prefix: '/api' })
   .use(
     cors({
-      origin: 'http://localhost:5173', // Update this to match your front-end origin
-      credentials: true, // Allow credentials to be included (cookies, HTTP authentication)
+      origin: 'http://localhost:5173',
+      credentials: true,
     })
   )
-  .use(typesenseApi)
-  .use(quizApi)
   .use(authApi)
-  .use(chunkerApi);
+  .guard(
+    {
+      beforeHandle: async ({ jwt, cookie: { auth }, status }) => {
+        try {
+          if (!auth?.value) {
+            return status(401, 'Unauthorized');
+          }
+
+          const authorized = await jwt.verify(auth.value);
+          if (!authorized) {
+            return status(401, 'Unauthorized');
+          }
+
+        } catch (error) {
+          return status(500, 'Something went wrong :(');
+        }
+      },
+    },
+    (protectedApp) =>
+      protectedApp.use(typesenseApi).use(quizApi).use(chunkerApi)
+  );
 
 type RequestHandler = (context: {
   request: Request;

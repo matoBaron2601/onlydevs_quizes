@@ -42,7 +42,7 @@ export const createUser = async (userData: User): Promise<User> => {
   return createdUser;
 };
 
-export const findOrCreateUser = async (userData: User): Promise<User> => {
+export const  findOrCreateUser = async (userData: User): Promise<User> => {
   const existingUser = await getUserById(userData.id);
   if (existingUser) {
     return existingUser;

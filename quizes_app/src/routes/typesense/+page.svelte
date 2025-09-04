@@ -1,76 +1,56 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { CollectionSchema } from 'typesense/lib/Typesense/Collection';
-  import handleFetchCollections from './handlers/handleGetCollections';
-  import { handleCreateCollectionV1 } from './handlers/handleCreateCollections';
-  import { CollectionName } from '../../typesense/types';
-  import { handleDeleteCollectionV1 } from './handlers/handleDeleteCollections';
-  import Modal from '../../components/Modal.svelte';
-  import type { SearchResponse } from 'typesense/lib/Typesense/Documents';
   import { createMutation } from '@tanstack/svelte-query';
-  import fetchAllCollectionDocuments from './handlers/fetchAllCollectionDocuments';
+  import type { SearchResponse } from 'typesense/lib/Typesense/Documents';
+  import handleGetCollectionDocuments from './handlers/handleGetCollectionDocuments';
+  import handleChunkFile from './handlers/handleChunkFile';
+  import Card from '../../components/Card.svelte';
+  import handleGetCollections from './handlers/handleGetCollections';
+  import { CollectionNames } from './constants';
+  import handleCreateCollection from './handlers/handleCreateCollection';
+  import { goto } from '$app/navigation';
+  import Modal from '../../components/Modal.svelte';
+  import { handleDeleteCollectionV1 } from './handlers/handleDeleteCollection';
 
   let collections: CollectionSchema[] | null = null;
-  let isModalOpen = false;
-  let selectedFile: File | null = null;
-  let currentCollectionFoundDocuments = 0;
-  let currentCollectionSchema: string = '';
+  let collectionDocumentCount: number | null = null;
+  let isLoadingCreateCollection = false;
   let isFileUploadLoading = false;
+  let currentCollectionSchema: string = '';
+  let selectedFile: File | null = null;
+  let isModalOpen = false;
+  let defaultCollections = [CollectionNames.collectionV1];
+
   onMount(async () => {
-    const res = await fetch('http://localhost:5173/api/auth/user', {
-      method: 'GET',
-      credentials: 'include', // Important for sending cookies
-    });
-
-    if (!res.ok) {
-      // Handle error response
-      console.log('Error response:', res.status, res.statusText);
-      return;
+    const res2 = await fetch('api/auth/user');
+    if (res2.status === 401) {
+      goto('/login');
     }
+    collections = await handleGetCollections();
+  });
 
-    // Read the response body as JSON
-    const data = await res.json();
-    console.log(data); // This will log the actual response data
-  });
-  const mutation = createMutation({
-    mutationFn: fetchAllCollectionDocuments,
+  const getCollectionDocumentsMutation = createMutation({
+    mutationFn: handleGetCollectionDocuments,
     onSuccess(data: SearchResponse<object>) {
-      currentCollectionFoundDocuments = data.found;
-    },
-    onError(error: Error) {
-      console.error('Error fetching data:', error);
+      collectionDocumentCount = data.found;
     },
   });
+
   const uploadFileMutation = createMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await fetch('api/chunker', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload file');
-      }
-
-      return response.json();
+      await handleChunkFile(formData);
     },
     onMutate() {
-      isFileUploadLoading = true; // Set loading state before mutation starts
-    },
-    onSuccess(data) {
-      console.log('File uploaded successfully:', data);
-      // Handle any additional logic after a successful upload
-    },
-    onError(error: Error) {
-      console.error('Error uploading file:', error);
+      isFileUploadLoading = true;
     },
     onSettled() {
-      isFileUploadLoading = false; // Reset loading state after mutation finishes
+      isFileUploadLoading = false;
     },
   });
 
-  const handleModalOpen = (collection: CollectionSchema) => {
-    $mutation.mutate();
+  const handleOpenModal = (collection: CollectionSchema) => {
+    $getCollectionDocumentsMutation.mutate();
     currentCollectionSchema = JSON.stringify(
       collection.fields.map((field) => ({
         name: field.name,
@@ -80,34 +60,6 @@
       2
     );
   };
-
-  const collectionExists = (name: string) => {
-    return collections?.some((collection) => collection.name === name);
-  };
-
-  const BUTTONS = [
-    {
-      label: `Create and populate ${CollectionName.collectionV1}`,
-      action: async () => {
-        await handleCreateCollectionV1();
-        // await handlePopulateCollectionV1();
-        collections = await handleFetchCollections();
-      },
-      condition: () => !collectionExists(CollectionName.collectionV1),
-    },
-    {
-      label: `Delete ${CollectionName.collectionV1}`,
-      action: async () => {
-        await handleDeleteCollectionV1();
-        collections = await handleFetchCollections();
-      },
-      condition: () => collectionExists(CollectionName.collectionV1),
-    },
-  ];
-
-  onMount(async () => {
-    collections = await handleFetchCollections();
-  });
 
   const handleFileUpload = async (event: Event) => {
     const fileInput = event.target as HTMLInputElement;
@@ -119,81 +71,93 @@
       await $uploadFileMutation.mutateAsync(formData);
     }
   };
-  function triggerFileInput() {
+
+  const triggerFileInput = () => {
     const fileInput = document.getElementById('fileInput');
     if (fileInput) {
       fileInput.click();
     }
-  }
+  };
+  $: defaultCollectionsMap = defaultCollections.map((name) => {
+    const collection = collections?.find(
+      (collection) => collection.name === name
+    );
+    return { name, collection: collection || null };
+  });
 </script>
 
-<div
-  class="flex justify-center items-center min-h-screen bg-[var(--color1)] gap-20"
->
+<div>
   <div
-    class="bg-[var(--color4)] rounded-3xl shadow-xl p-10 max-w-md w-full text-center"
+    class="flex justify-center items-center min-h-screen bg-[var(--color1)] gap-20"
   >
-    <h1 class="text-4xl font-bold text-[var(--color2)] mb-8">
-      Default Collections
-    </h1>
-
-    {#if collections && collections.length > 0}
-      <ul class="mt-8 space-y-4">
-        {#each collections as collection}
-          <li class="flex gap-4">
-            <button
-              type="button"
-              class="w-full text-center text-[var(--color2)] bg-[var(--color1)] p-4 rounded-lg shadow cursor-pointer"
-              on:click={() => {
-                handleModalOpen(collection);
-                isModalOpen = true;
-              }}
-            >
-              {collection.name}
-            </button>
-            <button
-              type="button"
-              on:click={triggerFileInput}
-              class="text-[var(--color2)] bg-[var(--color1)] p-2 rounded-lg shadow-lg cursor-pointer transition-colors hover:bg-[var(--color2)] hover:text-[var(--color1)]"
-              aria-label="Upload File"
-            >
-              {#if isFileUploadLoading}
-                <span>Loading...</span>
-              {:else}
-                <span>Upload File</span>
-              {/if}
-            </button>
-            <input
-              id="fileInput"
-              type="file"
-              accept=".txt"
-              class="hidden"
-              on:change={handleFileUpload}
-            />
-          </li>
+    <Card title="Default Collections">
+      {#if defaultCollectionsMap.length === 0}
+        <span>No collections found</span>
+      {:else}
+        {#each defaultCollectionsMap as { name, collection }}
+          <div>
+            {#if !collection}
+              <button
+                on:click={async () => {
+                  isLoadingCreateCollection = true;
+                  await handleCreateCollection(name);
+                  collections = await handleGetCollections();
+                  isLoadingCreateCollection = false;
+                }}
+                class="w-full py-4 rounded-lg shadow-lg font-semibold transition-colors mb-4 cursor-pointer mt-4 bg-[var(--color3)] text-[var(--color1)]"
+                >{isLoadingCreateCollection ? 'Creating...' : 'Create collection'}</button
+              >
+            {:else}
+              <div class="flex flex-col w-full gap-2">
+                <li class="flex gap-4">
+                  <button
+                    type="button"
+                    class="w-full text-center text-[var(--color2)] bg-[var(--color1)] p-4 rounded-lg shadow cursor-pointer"
+                    on:click={() => {
+                      handleOpenModal(collection);
+                      isModalOpen = true;
+                    }}
+                  >
+                    {name}
+                  </button>
+                  <button
+                    type="button"
+                    on:click={triggerFileInput}
+                    class="text-[var(--color2)] bg-[var(--color1)] p-2 rounded-lg shadow-lg cursor-pointer transition-colors hover:bg-[var(--color2)] hover:text-[var(--color1)]"
+                    aria-label="Upload File"
+                  >
+                    {#if isFileUploadLoading}
+                      <span>Loading...</span>
+                    {:else}
+                      <span>Upload File</span>
+                    {/if}
+                  </button>
+                  <input
+                    id="fileInput"
+                    type="file"
+                    accept=".txt"
+                    class="hidden"
+                    on:change={handleFileUpload}
+                  />
+                </li>
+                <button
+                  on:click={async () => {
+                    await handleDeleteCollectionV1();
+                    collections = await handleGetCollections();
+                  }}
+                  class="w-full py-4 rounded-lg shadow-lg font-semibold transition-colors mb-4 cursor-pointer mt-4 bg-red-500 text-[var(--color1)]"
+                  >Delete collection</button
+                >
+              </div>
+            {/if}
+          </div>
         {/each}
-      </ul>
-    {/if}
-    {#each BUTTONS as button}
-      {#if button.condition()}
-        <button
-          on:click={button.action}
-          class="w-full py-4 rounded-lg shadow-lg font-semibold transition-colors mb-4 cursor-pointer mt-4"
-          class:bg-[var(--color3)]={button.label.startsWith('Create')}
-          class:bg-[var(--color6)]={button.label.startsWith('Delete')}
-          class:text-[var(--color1)]={true}
-          class:focus:outline-none={true}
-          class:focus:ring-2={true}
-          class:focus:ring-[var(--color3)]={true}
-        >
-          {button.label}
-        </button>
       {/if}
-    {/each}
+    </Card>
   </div>
   <Modal onClose={() => (isModalOpen = false)} isOpen={isModalOpen}>
     <p>
-      Documents found: {currentCollectionFoundDocuments}
+      Documents found: {collectionDocumentCount}
     </p>
     <p>
       Schema: {currentCollectionSchema}

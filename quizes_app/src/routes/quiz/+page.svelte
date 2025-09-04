@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
   import type { Quiz } from '../../types/quizTypes';
   import { handleCreateQuiz } from './handlers/handleCreateQuiz';
 
@@ -9,11 +11,17 @@
   let selectedAnswers: Record<string, string> = {};
   let score: number | null = null;
 
+  onMount(async () => {
+    const res2 = await fetch('api/auth/user');
+    if (res2.status === 401) {
+      goto('/login');
+    }
+  });
   const onSubmit = async () => {
     loading = true;
     errorMessage = '';
     createdQuiz = { questions: [] };
-    selectedAnswers = {};    
+    selectedAnswers = {};
     score = null;
     const response = await handleCreateQuiz(tags);
     if (response) {

@@ -8,8 +8,10 @@ import {
 import { findOrCreateUser, getUserInfo } from '../../server/userServer';
 import { jwt } from '@elysiajs/jwt'; // For JWT
 import { config } from 'dotenv';
+import getExpTimestamp from '../../redis/utils';
+import { RedisClientConfig } from '../../redis/RedisClient';
 config();
-
+// https://sadewawicak25.medium.com/jwt-authentication-elysia-js-with-redis-3-3290a59bf2bf
 export const oauth2Client = new OAuth2Client(
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
@@ -37,30 +39,42 @@ const authApi = new Elysia()
 
   .get(
     'auth/callback/google',
-    async ({ redirect, query, jwt, cookie: { auth } }) => {
+    async ({ redirect, query, jwt, cookie: { auth }, set }) => {
       const { code } = query;
       const { tokens } = await oauth2Client.getToken(code);
       oauth2Client.setCredentials(tokens);
       console.log('Tokens acquired:', tokens);
       const userData = await getUserInfo(tokens);
       const user = await findOrCreateUser(userData);
-      const value = await jwt.sign({ userId: user.id, email: user.email });
-      auth.set({
-        value,
-        httpOnly: true,
-        maxAge: 7 * 86400,
-        path: '/',
+      const datetime = Math.floor(Date.now() / 1000);
+
+      const accessJWTToken = await jwt.sign({
+        sub: user.id,
+        exp: getExpTimestamp(60 * 15), // 15 minutes
+        iat: true,
       });
+      auth.set({
+        value: accessJWTToken,
+        httpOnly: true,
+        maxAge: 60 * 60, // 1 day in seconds
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+      });
+
       return redirect('http://localhost:5173');
     }
   )
   .get('/auth/user', async ({ jwt, cookie: { auth }, status }) => {
     try {
       const profile = await jwt.verify(auth.value);
-      return profile
+      if (!profile) {
+        return status(401, 'Unauthorized');
+      }
+      return profile;
     } catch (error) {
       console.error('JWT verification error:', error);
-      return status(401, 'Unauthorized'); // Return 401 if JWT is invalid
+      return status(401, 'Unauthorized');
     }
   });
 

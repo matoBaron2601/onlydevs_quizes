@@ -17,7 +17,7 @@ export const getDocumentsV1 = async (
     .search(searchParameters);
 };
 
-export const getAllDocuments = async (
+export const getCollectionDocuments = async (
   colletionName: CollectionName
 ): Promise<SearchResponse<object>> => {
   const searchParameters = {
