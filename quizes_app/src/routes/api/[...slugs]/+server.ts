@@ -4,6 +4,7 @@ import { quizApi } from '../quizApi';
 import authApi from '../authApi';
 import chunkerApi from '../chunkerApi';
 import { cors } from '@elysiajs/cors';
+import { ollamaApi } from '../ollamaApi';
 
 const app = new Elysia({ prefix: '/api' })
   .use(
@@ -32,7 +33,7 @@ const app = new Elysia({ prefix: '/api' })
       },
     },
     (protectedApp) =>
-      protectedApp.use(typesenseApi).use(quizApi).use(chunkerApi)
+      protectedApp.use(typesenseApi).use(quizApi).use(chunkerApi).use(ollamaApi)
   );
 
 type RequestHandler = (context: {

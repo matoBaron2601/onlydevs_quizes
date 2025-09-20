@@ -46,17 +46,15 @@ const authApi = new Elysia()
       console.log('Tokens acquired:', tokens);
       const userData = await getUserInfo(tokens);
       const user = await findOrCreateUser(userData);
-      const datetime = Math.floor(Date.now() / 1000);
-
       const accessJWTToken = await jwt.sign({
         sub: user.id,
-        exp: getExpTimestamp(60 * 15), // 15 minutes
+        exp: getExpTimestamp(60 * 60 * 24), // 1 day
         iat: true,
       });
       auth.set({
         value: accessJWTToken,
         httpOnly: true,
-        maxAge: 60 * 60, // 1 day in seconds
+        maxAge: 60 * 60 * 24, // 1 day
         sameSite: 'lax',
         path: '/',
         secure: true,
@@ -71,6 +69,16 @@ const authApi = new Elysia()
       if (!profile) {
         return status(401, 'Unauthorized');
       }
+      if (profile.sub) {
+        const response =  await oauth2Client.request({
+          url: 'https://www.googleapis.com/oauth2/v3/userinfo',
+          headers: {
+            Authorization: `Bearer ${profile.sub}`,
+          },
+        });
+        return response.data;
+      }
+
       return profile;
     } catch (error) {
       console.error('JWT verification error:', error);

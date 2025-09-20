@@ -5,13 +5,13 @@
   import type { SearchResponse } from 'typesense/lib/Typesense/Documents';
   import handleGetCollectionDocuments from './handlers/handleGetCollectionDocuments';
   import handleChunkFile from './handlers/handleChunkFile';
-  import Card from '../../components/Card.svelte';
   import handleGetCollections from './handlers/handleGetCollections';
   import { CollectionNames } from './constants';
   import handleCreateCollection from './handlers/handleCreateCollection';
   import { goto } from '$app/navigation';
   import Modal from '../../components/Modal.svelte';
   import { handleDeleteCollectionV1 } from './handlers/handleDeleteCollection';
+  import CollectionsCard from '../dataset/common/components/CollectionsCard.svelte';
 
   let collections: CollectionSchema[] | null = null;
   let collectionDocumentCount: number | null = null;
@@ -90,7 +90,7 @@
   <div
     class="flex justify-center items-center min-h-screen bg-[var(--color1)] gap-20"
   >
-    <Card title="Default Collections">
+    <CollectionsCard name="Default Collections">
       {#if defaultCollectionsMap.length === 0}
         <span>No collections found</span>
       {:else}
@@ -105,7 +105,9 @@
                   isLoadingCreateCollection = false;
                 }}
                 class="w-full py-4 rounded-lg shadow-lg font-semibold transition-colors mb-4 cursor-pointer mt-4 bg-[var(--color3)] text-[var(--color1)]"
-                >{isLoadingCreateCollection ? 'Creating...' : 'Create collection'}</button
+                >{isLoadingCreateCollection
+                  ? 'Creating...'
+                  : 'Create collection'}</button
               >
             {:else}
               <div class="flex flex-col w-full gap-2">
@@ -153,7 +155,7 @@
           </div>
         {/each}
       {/if}
-    </Card>
+    </CollectionsCard>
   </div>
   <Modal onClose={() => (isModalOpen = false)} isOpen={isModalOpen}>
     <p>

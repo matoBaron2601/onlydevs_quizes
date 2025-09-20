@@ -1,17 +1,16 @@
 <script lang="ts">
-  import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
+  import { QueryClientProvider } from '@tanstack/svelte-query';
   import '../app.css';
   import Header from '../components/Header.svelte';
-  import { goto } from '$app/navigation';
-  import { onMount } from 'svelte';
-  const queryClient = new QueryClient();
+
+  import { queryClient } from '../lib/queryClient';
 
   const { children } = $props();
 </script>
 
 <QueryClientProvider client={queryClient}>
   <Header title="OnlyDevs Quizzes" />
-  <main class="p-4">
+  <main class="p-4 w-full h-full">
     {@render children()}
   </main>
 </QueryClientProvider>

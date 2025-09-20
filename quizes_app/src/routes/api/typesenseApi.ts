@@ -1,33 +1,37 @@
 import Elysia from 'elysia';
-import { createQuizSchema } from '../../schemas/quizSchemas';
-import testjson from '../../typesense/v1/data/test.json';
 import {
-  createCollectionV1,
-  deleteCollectionV1,
-  populateCollectionV1,
-} from '../../typesense/v1';
-import {
+  createCollection,
+  deleteCollection,
+  getCollection,
+  populateCollection,
   getCollectionDocuments,
-  getCollections,
+  getUniqueTechnologies,
 } from '../../server/typesenseServer';
 import { CollectionName } from '../../typesense/types';
-
+import reactDocument from '../../typesense/v1/data/react_document.json';
 export const typesenseApi = new Elysia()
-  .get('typesense/collections', getCollections)
-  .post('typesense/v1/createCollection', async () => {
-    return await createCollectionV1();
+  .get('typesense/default/collection', async () => {
+    return await getCollection();
+  })
+  .post('typesense/default/createCollection', async () => {
+    return await createCollection();
   })
 
-  .delete('typesense/v1/deleteCollection', async () => {
-    return await deleteCollectionV1();
+  .delete('typesense/default/deleteCollection', async () => {
+    return await deleteCollection();
   })
-  .get('typesense/v1/getCollectionDocuments', async () => {
-    return await getCollectionDocuments(CollectionName.collectionV1);
+
+  .post('typesense/default/populateCollection', async () => {
+    return await populateCollection({
+      contentChunks: reactDocument.content,
+      is_default: true,
+      technology: ['react'],
+      source_file: 'source_file',
+    });
   })
-  .post('typesense/v1/populateCollection', async () => {
-    // return await populateCollectionV1(await chunkFile(['']));
+  .get('typesense/default/getUniqueTechnologies', async () => {
+    return await getUniqueTechnologies(CollectionName.collectionV1, true);
   })
-  .post('typesense/v1/populateDefaultDocuments', async ({ body }) => {
-    const content: string[] = testjson.content;
-    return await populateCollectionV1(content);
+  .get('typesense/custom/getUniqueTechnologies', async () => {
+    return await getUniqueTechnologies(CollectionName.collectionV1, false);
   });
